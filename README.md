@@ -74,7 +74,13 @@ Requires Go 1.25 or newer.
 
 ### Prebuilt binaries
 
-Download from the [latest release](https://github.com/bjarneo/coo/releases/latest). Linux and macOS get amd64 + arm64; Windows gets amd64. Verify with the bundled `checksums.txt`.
+One-liner that picks the right binary for your OS and arch, verifies the SHA-256, and drops it in `~/.local/bin` (or `/usr/local/bin` if `~/.local/bin` is not on your PATH):
+
+```bash
+curl -fSL https://raw.githubusercontent.com/bjarneo/coo/HEAD/install.sh | sh
+```
+
+Override the destination with `INSTALL_DIR=/some/path sh install.sh`. Or download manually from the [latest release](https://github.com/bjarneo/coo/releases/latest); Linux and macOS get amd64 + arm64, Windows gets amd64. Verify with the bundled `checksums.txt`.
 
 ## Documentation
 
