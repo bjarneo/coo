@@ -50,8 +50,12 @@ func Strip(width int, tabs []Tab, network, status string) (string, []TabHit) {
 		width = 80
 	}
 
+	// Active tab uses terminal-black on the accent color. ColorText
+	// (bright white) on a saturated accent bg gave poor contrast on most
+	// themes; ANSIColor(0) tracks the terminal's "black" slot which
+	// contrasts with any reasonable accent.
 	activeStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorText).
+		Foreground(lipgloss.ANSIColor(0)).
 		Background(ui.ColorAccent).
 		Padding(0, 1).
 		Bold(true)
