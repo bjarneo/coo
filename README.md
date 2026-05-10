@@ -2,14 +2,7 @@
 
 A light terminal IRC client built on Bubble Tea and Lipgloss.
 
-```
-[*server*] [#archlinux] | #go-nuts | @alice          libera ok
-topic Welcome to #archlinux. https://wiki.archlinux.org/
-14:02 <alice>   morning
-14:03 <bob>     anyone got tokei v15 working
-14:03 <bjarneo> yeah, just bumped it
-#archlinux> _
-```
+![coo running in a terminal](preview.png)
 
 Tabs across the top, channels open on demand, mouse and keyboard both work, themes load from TOML, and hostmasks never reach the screen.
 
