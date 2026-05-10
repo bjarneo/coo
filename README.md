@@ -11,7 +11,7 @@ Tabs across the top, channels open on demand, mouse and keyboard both work, them
 ```bash
 go build -o coo .
 
-./coo --server irc.libera.chat --nick yourname '#archlinux'
+./coo --server irc.oever.li --nick yourname '#omarchy'
 ```
 
 Press `?` for the keymap, `Ctrl+T` for the theme picker, `/quit` to exit.
@@ -19,8 +19,8 @@ Press `?` for the keymap, `Ctrl+T` for the theme picker, `/quit` to exit.
 For NickServ or SASL login (password prompted at startup, never stored):
 
 ```bash
-./coo --server irc.libera.chat --nick yourname --sasl '#archlinux'
-./coo --server irc.libera.chat --nick yourname --nickserv '#archlinux'
+./coo --server irc.oever.li --nick yourname --sasl '#omarchy'
+./coo --server irc.oever.li --nick yourname --nickserv '#omarchy'
 ```
 
 For a persistent setup, drop a TOML file at `~/.config/coo/config.toml` and run `./coo` with no flags. See [docs/configuration.md](docs/configuration.md).
