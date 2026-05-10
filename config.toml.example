@@ -1,0 +1,20 @@
+# coo config — ~/.config/coo/config.toml
+server   = "irc.libera.chat"
+port     = 6697
+tls      = true
+nick     = "yourname"
+realname = "Your Name"
+channels = ["#archlinux", "#go-nuts"]
+
+# Blank or omitted = follow terminal palette. Run `coo --list-themes`.
+theme = ""
+
+# SASL PLAIN — password is prompted at startup, never stored.
+sasl = false
+
+# NickServ identify — sends `/msg NickServ identify <pass>` after connect.
+[nickserv]
+enabled = false
+
+log_level = "info"
+# log_file = "/tmp/coo.log"

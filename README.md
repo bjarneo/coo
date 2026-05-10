@@ -1,0 +1,72 @@
+# coo
+
+A light terminal IRC client built on Bubble Tea and Lipgloss.
+
+```
+[*server*] [#archlinux] | #go-nuts | @alice          libera ok
+topic Welcome to #archlinux. https://wiki.archlinux.org/
+14:02 <alice>   morning
+14:03 <bob>     anyone got tokei v15 working
+14:03 <bjarneo> yeah, just bumped it
+#archlinux> _
+```
+
+Tabs across the top, channels open on demand, mouse and keyboard both work, themes load from TOML, and hostmasks never reach the screen.
+
+## Quick start
+
+```bash
+go build -o coo .
+
+./coo --server irc.libera.chat --nick yourname '#archlinux'
+```
+
+Press `?` for the keymap, `Ctrl+T` for the theme picker, `/quit` to exit.
+
+For NickServ or SASL login (password prompted at startup, never stored):
+
+```bash
+./coo --server irc.libera.chat --nick yourname --sasl '#archlinux'
+./coo --server irc.libera.chat --nick yourname --nickserv '#archlinux'
+```
+
+For a persistent setup, drop a TOML file at `~/.config/coo/config.toml` and run `./coo` with no flags. See [docs/configuration.md](docs/configuration.md).
+
+## Features
+
+- 30+ slash commands: `/join`, `/msg`, `/whois`, `/who`, `/kick`, `/ban`, `/mode`, `/op`, `/away`, `/list`, `/notice`, `/ping`, and more. See [docs/usage.md](docs/usage.md).
+- Mouse: click tabs to switch, click names to start a query, wheel-scroll the buffer.
+- Scrollable modal overlays for the keymap (`?`), theme picker (`Ctrl+T`), and channel members (`/names`).
+- 20 builtin themes plus user themes from `~/.config/coo/themes/*.toml`. See [docs/themes.md](docs/themes.md).
+- Full CLI surface: every TOML key has a flag, and flags win. See [docs/configuration.md](docs/configuration.md).
+- Hardened against malicious server input: ANSI escapes, mIRC color codes, BEL, and control bytes are stripped before display. Hostmasks (`nick!user@host`) are redacted from every nick we render. See [docs/architecture.md](docs/architecture.md).
+
+## Install
+
+```bash
+git clone https://github.com/yourorg/coo
+cd coo
+go build -o coo .
+
+# optional: copy the binary onto your PATH
+install coo ~/.local/bin/
+```
+
+Requires Go 1.25 or newer.
+
+## Documentation
+
+- [Usage](docs/usage.md): slash commands, keybindings, mouse
+- [Configuration](docs/configuration.md): CLI flags and `~/.config/coo/config.toml`
+- [Themes](docs/themes.md): switching, customizing, and writing your own
+- [Architecture](docs/architecture.md): codebase tour and security model
+
+## Status
+
+Single-network, foreground client. Works on Libera Chat, OFTC, Rizon, EsperNet, and any IRCv3-aware network.
+
+Out of scope: DCC, multi-network, IRCv3 chathistory replay.
+
+## License
+
+MIT.
