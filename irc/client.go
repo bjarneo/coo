@@ -458,15 +458,19 @@ func (c *Client) CTCPPing(nick string) error {
 	return c.conn.Privmsg(nick, "\x01PING "+stamp+"\x01")
 }
 
-// IdentifyNickServ sends the standard NickServ IDENTIFY command and starts
-// a watchdog that flushes the autoJoin list if no auth confirmation arrives
-// within authConfirmTimeout (so a network without 900 / silent NickServ
-// doesn't strand initial JOINs forever).
+// IdentifyNickServ sends `IDENTIFY <account> <password>` to NickServ, using
+// the configured nickname as the account name so we mirror SASL semantics.
+// Without the explicit account argument, NickServ looks up the *current*
+// nickname; if the server reassigned us (ghost / 433) or the account name
+// differs from the nick, the implicit form fails with "Account does not
+// exist". Atheme, Anope, and ircd-seven all accept the explicit form.
+//
+// Starts a watchdog so a silent NickServ doesn't strand initial JOINs.
 func (c *Client) IdentifyNickServ(password string) error {
-	if password == "" {
+	if password == "" || c.cfg.Nick == "" {
 		return nil
 	}
-	if err := c.conn.Privmsg("NickServ", "IDENTIFY "+password); err != nil {
+	if err := c.conn.Privmsg("NickServ", "IDENTIFY "+c.cfg.Nick+" "+password); err != nil {
 		return err
 	}
 	go c.authWatchdog()

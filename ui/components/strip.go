@@ -113,10 +113,23 @@ func Strip(width int, tabs []Tab, network, status string) (string, []TabHit) {
 	rightW := lipgloss.Width(right)
 	pad := width - leftW - rightW
 	if pad < 1 {
-		pad = 1
+		// Bar would overflow; truncate the left portion so the right
+		// (status + network) stays on one line. Without this clamp,
+		// lipgloss.NewStyle().Width(width) wraps the overflow onto a
+		// second line which gets eaten by the topic / buffer below.
+		room := width - rightW - 1
+		if room < 0 {
+			room = 0
+		}
+		left = lipgloss.NewStyle().MaxWidth(room).Render(left)
+		leftW = lipgloss.Width(left)
+		pad = width - leftW - rightW
+		if pad < 1 {
+			pad = 1
+		}
 	}
 	bar := left + strings.Repeat(" ", pad) + right
-	return lipgloss.NewStyle().Width(width).Render(bar), hits
+	return lipgloss.NewStyle().MaxWidth(width).Render(bar), hits
 }
 
 func tabLabel(t Tab) string {
