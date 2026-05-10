@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          BINARY="coo-${GOOS}-${GOARCH}"
+          if [ "$GOOS" = "windows" ]; then
+            BINARY="${BINARY}.exe"
+          fi
+          VERSION="${GITHUB_REF#refs/tags/}"
+          go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$BINARY" .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: coo-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: coo-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum coo-* > checksums.txt
+          cat checksums.txt
+
+      - name: Generate changelog
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="$TAG"
+          else
+            RANGE="${PREV_TAG}..${TAG}"
+          fi
+
+          CHANGELOG=""
+          while IFS='|' read -r hash title author || [ -n "$hash" ]; do
+            short_hash="${hash:0:7}"
+            username=$(gh api "repos/${REPO}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
+            if [ -n "$username" ]; then
+              author_info="$author ([@$username](https://github.com/$username))"
+            else
+              author_info="$author"
+            fi
+            CHANGELOG="${CHANGELOG}- ${title} by ${author_info} ([\`${short_hash}\`](https://github.com/${REPO}/commit/${hash}))"$'\n'
+          done < <(git log "$RANGE" --pretty=format:"%H|%s|%an")
+
+          {
+            echo "## What's Changed"
+            echo ""
+            printf '%s' "$CHANGELOG"
+            echo ""
+            echo "## Checksums (SHA256)"
+            echo ""
+            echo '```'
+            cat artifacts/checksums.txt
+            echo '```'
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
+            fi
+          } > release_notes.md
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          files: |
+            artifacts/coo-*
+            artifacts/checksums.txt

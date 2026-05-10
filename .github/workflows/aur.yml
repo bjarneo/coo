@@ -1,0 +1,102 @@
+name: Publish to AUR
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+
+jobs:
+  aur:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Extract version
+        id: version
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          TAG="$HEAD_BRANCH"
+          echo "pkgver=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PKGBUILD
+        env:
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+          REPO: ${{ github.repository }}
+        run: |
+          SOURCE_URL="https://github.com/${REPO}/archive/refs/tags/v${PKGVER}.tar.gz"
+          SHA256=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
+
+          cat > PKGBUILD <<'HEREDOC'
+          # Maintainer: bjarneo <https://github.com/bjarneo>
+          pkgname=coo
+          pkgver=PKGVER_PLACEHOLDER
+          pkgrel=1
+          pkgdesc='A light terminal IRC client built on Bubble Tea'
+          arch=('x86_64' 'aarch64')
+          url='https://github.com/bjarneo/coo'
+          license=('MIT')
+          depends=('glibc')
+          makedepends=('go')
+          source=("${pkgname}-${pkgver}.tar.gz::https://github.com/bjarneo/coo/archive/refs/tags/v${pkgver}.tar.gz")
+          sha256sums=('SHA256_PLACEHOLDER')
+
+          build() {
+              cd "${pkgname}-${pkgver}"
+              export CGO_ENABLED=0
+              export GOFLAGS="-trimpath -mod=readonly -modcacherw"
+              go build -ldflags="-s -w -X main.version=v${pkgver}" -o coo .
+          }
+
+          package() {
+              cd "${pkgname}-${pkgver}"
+              install -Dm755 coo "${pkgdir}/usr/bin/coo"
+              install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+              install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+          }
+          HEREDOC
+
+          sed -i 's/^          //' PKGBUILD
+          sed -i "s|PKGVER_PLACEHOLDER|${PKGVER}|" PKGBUILD
+          sed -i "s|SHA256_PLACEHOLDER|${SHA256}|" PKGBUILD
+
+          cat PKGBUILD
+
+      - name: Publish to AUR
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          AUR_USERNAME: ${{ secrets.AUR_USERNAME }}
+          AUR_EMAIL: ${{ secrets.AUR_EMAIL }}
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t rsa,ecdsa,ed25519 aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null
+          cat >> ~/.ssh/config <<EOF
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            User aur
+          EOF
+
+          git clone ssh://aur@aur.archlinux.org/coo.git aur-repo
+          cd aur-repo
+
+          git config user.name "$AUR_USERNAME"
+          git config user.email "$AUR_EMAIL"
+
+          cp ../PKGBUILD .
+          docker run --rm -v "$PWD/PKGBUILD:/PKGBUILD:ro" archlinux:base bash -c \
+            'pacman -Sy --noconfirm pacman-contrib >&2 && cp /PKGBUILD /tmp/ && cd /tmp && chown nobody PKGBUILD && runuser -u nobody -- makepkg --printsrcinfo' > .SRCINFO
+
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update to v${PKGVER}"
+            git push
+          fi
