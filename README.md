@@ -43,8 +43,26 @@ For a persistent setup, drop a TOML file at `~/.config/coo/config.toml` and run 
 
 ## Install
 
+### Arch Linux (AUR)
+
+Two packages are published on AUR. Pick one:
+
 ```bash
-git clone https://github.com/yourorg/coo
+# Source build (compiles locally with go)
+yay -S coo
+# or: paru -S coo
+
+# Prebuilt binary (no go toolchain required)
+yay -S coo-bin
+# or: paru -S coo-bin
+```
+
+`coo-bin` provides `coo`, so installing one will conflict with the other. Pick the source package if you want to verify the build, the binary package if you want a one-second install.
+
+### Build from source
+
+```bash
+git clone https://github.com/bjarneo/coo
 cd coo
 go build -o coo .
 
@@ -53,6 +71,10 @@ install coo ~/.local/bin/
 ```
 
 Requires Go 1.25 or newer.
+
+### Prebuilt binaries
+
+Download from the [latest release](https://github.com/bjarneo/coo/releases/latest). Linux and macOS get amd64 + arm64; Windows gets amd64. Verify with the bundled `checksums.txt`.
 
 ## Documentation
 
